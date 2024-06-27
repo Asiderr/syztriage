@@ -2,17 +2,17 @@
 
 import logging
 import pandas as pd
-import subprocess
 
 from io import StringIO
+from src.syzcommon import SyzCommon
 
 
-class SyzDetails:
+class SyzDetails(SyzCommon):
     def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
 
-    def _fetch_bug_report(self, url) -> str:
+    def _fetch_bug_report(self, url, dry_run=False) -> str:
         """
         Fetches and validates a bug report from the given URL.
 
@@ -27,21 +27,22 @@ class SyzDetails:
             ValueError: If the validation string is not found in the
             fetched report.
         """
-        cmd_dump_report = ["curl", url]
         report_validation = '<a href="/upstream">syzbot</a>'
-        p = subprocess.Popen(cmd_dump_report,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
+        cmd_dump_report = ["curl", url]
+        self.logger.debug("CMD: " + " ".join(cmd_dump_report))
 
-        stdout, stderr = p.communicate()
-        if p.returncode != 0:
-            self.logger.error(stderr.decode("utf-8"))
+        if dry_run:
+            return None
+
+        if not self.run_cmd(cmd_dump_report,
+                            "Fetching bug report has failed!",
+                            dump_std=True):
+            self.logger.error(self.stderr)
             raise ConnectionError
 
-        report = stdout.decode("utf-8")
-        if report_validation not in report:
+        if report_validation not in self.stdout:
             raise ValueError
-        return report
+        return self.stdout
 
     def _find_crashes(self, bug_html):
         """
@@ -97,13 +98,14 @@ class SyzDetails:
             self.logger.debug(valid_crashes[-1])
         return valid_crashes
 
-    def get_bug_details(self, url):
+    def get_bug_details(self, url, dry_run=False):
         """
         Retrieves and analyzes bug details from the given URL, with error
         handling and logging.
 
         Args:
             url (str): The URL of the bug report to fetch and analyze.
+            dry_run (bool): If flag is true method does not execute commands
 
         Returns:
             list or None: A list of dictionaries, each containing information
@@ -115,6 +117,10 @@ class SyzDetails:
             Returns `None` if fetching or processing fails, or if no valid
             crashes are found.
         """
+        if dry_run:
+            self._fetch_bug_report(url, dry_run=dry_run)
+            return None
+
         try:
             bug_html = self._fetch_bug_report(url)
             self.logger.debug(bug_html)

@@ -33,6 +33,9 @@ class TestSyzDetails(unittest.TestCase):
         report = self.syz._fetch_bug_report(VALID_URL)
         self.assertTrue(bug_title in report)
 
+    def test_fetch_bug_report_dry_run(self):
+        self.assertIsNone(self.syz._fetch_bug_report(VALID_URL, dry_run=True))
+
     def test_find_crashes_invalid_html(self):
         bug_html = "Invalid"
         self.assertIsNone(self.syz._find_crashes(bug_html))
@@ -76,6 +79,9 @@ class TestSyzDetails(unittest.TestCase):
 
     def test_get_bug_details_no_repro(self):
         self.assertIsNone(self.syz.get_bug_details(NO_REPRO_URL))
+
+    def test_get_bug_details_dry_run(self):
+        self.assertIsNone(self.syz.get_bug_details(VALID_URL, dry_run=True))
 
 
 if __name__ == "__main__":
