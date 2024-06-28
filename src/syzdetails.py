@@ -90,6 +90,7 @@ class SyzDetails(SyzCommon):
                            f"{crash_table['C repro'][i][1]}")
             valid_crashes.append(
                 {
+                    "repo_url": crash_commit[1],
                     "commit": crash_commit[0],
                     "config_url": config_url,
                     "c_repro_url": c_repro_url,

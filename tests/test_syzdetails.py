@@ -9,10 +9,14 @@ VALID_URL = "https://syzkaller.appspot.com/bug?extid=aeb14e2539ffb6d21130"
 
 
 class TestSyzDetails(unittest.TestCase):
-    def __init__(self, methodName: str = "runTest") -> None:
-        super().__init__(methodName)
+    def setUp(self) -> None:
         self.syz = syzdetails.SyzDetails()
-        self.syz.logger.setLevel(logging.DEBUG)
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format="%(asctime)s - %(levelname)s - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S"
+        )
+        return super().setUp()
 
     def test_fetch_bug_report_invalid_url(self):
         try:
