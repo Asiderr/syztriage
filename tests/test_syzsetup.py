@@ -9,6 +9,12 @@ TEST_REPO_DIR = "syztriage"
 TEST_CONFIG_URI = (
     "https://syzkaller.appspot.com/text?tag=KernelConfig&x=617171361dd3cd47"
 )
+TEST_CRASH_DETAILS = {
+    "repo_url": "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=45db3ab70092637967967bfd8e6144017638563c",
+    "commit": "45db3ab70092",
+    "config_url": "https://syzkaller.appspot.com/text?tag=KernelConfig&x=617171361dd3cd47",
+    "c_repro_uri": "https://syzkaller.appspot.com/text?tag=ReproC&x=112f45d4980000",
+}
 
 
 class TestSyzSetup(unittest.TestCase):
@@ -72,8 +78,18 @@ class TestSyzSetup(unittest.TestCase):
         )
         self.assertTrue(os.path.exists(f"{TEST_REPO_DIR}/.config"))
 
-    def test_setup_kernel_repository(self):
-        pass
+    def test_setup_kernel_repository_invalid_repo(self):
+        crash_detail_invalid_repo = TEST_CRASH_DETAILS.copy()
+        crash_detail_invalid_repo["repo_url"] = "INVALID"
+        self.assertFalse(
+            self.syz.setup_kernel_repository(crash_detail_invalid_repo,
+                                             TEST_REPO_DIR)
+        )
+
+    def test_setup_kernel_repository_valid(self):
+        self.assertTrue(
+            self.syz.setup_kernel_repository(TEST_CRASH_DETAILS, TEST_REPO_DIR)
+        )
 
 
 if __name__ == "__main__":

@@ -85,7 +85,16 @@ class TestSyzDetails(unittest.TestCase):
         self.assertIsNone(self.syz.get_bug_details(NO_REPRO_URL))
 
     def test_get_bug_details_dry_run(self):
-        self.assertIsNone(self.syz.get_bug_details(VALID_URL, dry_run=True))
+        self.assertListEqual(
+            self.syz.get_bug_details(VALID_URL, dry_run=True),
+            [{"repo_url": ("https://git.kernel.org/pub/scm/linux/kernel"
+                           "/git/torvalds/linux.git/log/?id=45db3ab7009"
+                           "2637967967bfd8e6144017638563c"),
+              "commit": "45db3ab70092",
+              "config_url": ("https://syzkaller.appspot.com/text?tag=Ke"
+                             "rnelConfig&x=617171361dd3cd47"),
+              "c_repro_uri": ("https://syzkaller.appspot.com/text?tag=R"
+                              "eproC&x=112f45d4980000")}])
 
 
 if __name__ == "__main__":
