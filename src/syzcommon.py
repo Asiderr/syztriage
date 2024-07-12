@@ -13,6 +13,9 @@ GREEN = "\033[32m"
 YELLOW = "\033[33m"
 ENDC = '\033[0m'
 
+HOME_DIR = os.path.expanduser("~")
+SSH_KEY = f"{HOME_DIR}/.ssh/linux-kernel-vscode-rsa"
+
 
 class SyzCommon:
     def __init__(self) -> None:
@@ -263,12 +266,29 @@ class SyzCommon:
 
     def check_repository_remote(self, repo_path, repo_name, dry_run=False):
         """
+        Checks if a remote repository with the given name exists in the
+        specified local repository.
+
+        Parameters:
+        repo_path (str): The path to the local Git repository.
+        repo_name (str): The name of the remote repository to check for.
+        dry_run (bool): If True, simulates the check without making any changes
+                        (default is False).
+
+        Returns:
+        bool: True if the remote repository exists or if dry_run is True,
+              False otherwise.
+
+        Logging:
+        - Logs debug information about the commands being executed.
+        - Logs an error if the repository path does not exist.
         """
         cmd_remote_list = ["git", "remote", "-v"]
         self.logger.debug("CMD: " + " ".join(cmd_remote_list))
         self.remote_name = None
 
         if dry_run:
+            self.remote_name = "dry run"
             return True
 
         workspace_dir = os.getcwd()
@@ -295,3 +315,78 @@ class SyzCommon:
         if self.remote_name:
             return True
         return False
+
+    def send_file_to_vm(self, file, dry_run=False):
+        """
+        Sends a file to a virtual machine using SCP (Secure Copy Protocol).
+
+        Parameters:
+        file (str): The path to the file to be sent to the VM.
+        dry_run (bool): If True, simulates the file transfer without making
+                        any changes (default is False).
+
+        Returns:
+        bool: True if the file transfer is successful or if dry_run is True,
+              False otherwise.
+
+        Note:
+        - This method assumes `SSH_KEY` is a predefined constant representing
+          the path to the SSH key file.
+        """
+        scp_cmd = ["scp", "-P", "5555", "-r", "-i", SSH_KEY, "-o",
+                   "IdentitiesOnly=yes", "-o",
+                   "NoHostAuthenticationForLocalhost=yes", file,
+                   "root@localhost:/root"]
+        self.logger.debug("CMD: " + " ".join(scp_cmd))
+
+        if dry_run:
+            return True
+
+        if not os.path.exists(SSH_KEY):
+            self.logger.error(f"{RED}SSH key doesn't exist!{ENDC}")
+            return False
+
+        if not os.path.exists(file):
+            self.logger.error(f"{RED}{file} doesn't exist!{ENDC}")
+            return False
+
+        if not self.run_cmd(scp_cmd,
+                            f"{RED}Copying {file} file to vm failed!{ENDC}"):
+            return False
+        return True
+
+    def run_vm_command(self, vm_cmd, dry_run=False):
+        """
+        Runs a specified command on a virtual machine via SSH.
+
+        Parameters:
+        vm_cmd (list): The command to run on the VM, provided as a list of
+                       command arguments.
+        dry_run (bool): If True, simulates running the command without making
+                        any changes (default is False).
+
+        Returns:
+        bool: True if the command is successfully executed or if dry_run
+              is True, False otherwise.
+
+        Note:
+        - This method assumes `SSH_KEY` is a predefined constant representing
+          the path to the SSH key file.
+        """
+        ssh_cmd = ["ssh", "-p", "5555", "-i", SSH_KEY, "-o",
+                   "IdentitiesOnly=yes", "-o",
+                   "NoHostAuthenticationForLocalhost=yes",
+                   "root@localhost"] + vm_cmd
+        self.logger.debug("CMD: " + " ".join(ssh_cmd))
+
+        if dry_run:
+            return True
+
+        if not os.path.exists(SSH_KEY):
+            self.logger.error(f"{RED}SSH key doesn't exist!{ENDC}")
+            return False
+
+        if not self.run_cmd(ssh_cmd,
+                            f"{RED}Running ssh cmd failed!{ENDC}"):
+            return False
+        return True
